@@ -26,6 +26,10 @@ trait LList[A] {
   def filter_v2(predicate: Predicate[A]): LList[A]
 
   def flatMap[B](transformer: Transformer[A, LList[B]]): LList[B]
+
+  // find test
+  def find(predicate: Predicate[A]): A
+
 }
 
 //-----------------------------------------------------------------------------
@@ -49,6 +53,8 @@ case class Empty[A]() extends LList[A] {
   override def flatMap[B](transformer: Transformer[A, LList[B]]): LList[B] = Empty[B]()
 
   override infix def ++(anotherList: LList[A]): LList[A] = anotherList
+
+  override def find(predicate: Predicate[A]): A = throw new NoSuchElementException("List is empty")
 }
 
 //-----------------------------------------------------------------------------
@@ -109,14 +115,18 @@ case class Cons[A](override val head: A, override val tail: LList[A]) extends LL
 
   /* example
     [1,2,3] ++ [4,5,6]
-    = new Cons(1, [2,3] ++ [4,5,6])
-    = new Cons(1, new Cons(2, [3] ++ [4,5,6]))
-    = new Cons(1, new Cons(2, new Cons(3, [] ++ [4,5,6])))
-    = new Cons(1, new Cons(2, new Cons(3, [4,5,6])))
+    = Cons(1, [2,3] ++ [4,5,6])
+    = Cons(1, Cons(2, [3] ++ [4,5,6]))
+    = Cons(1, Cons(2, Cons(3, [] ++ [4,5,6])))
+    = Cons(1, Cons(2, Cons(3, [4,5,6])))
     = [1,2,3,4,5,6]
    */
   override def ++(anotherList: LList[A]): LList[A] =
-    new Cons(head, tail ++ anotherList)
+    Cons(head, tail ++ anotherList)
+
+  override def find(predicate: Predicate[A]): A =
+    if predicate.test(head) then head
+    else tail.find(predicate)
 }
 
 //-----------------------------------------------------------------------------
@@ -203,5 +213,15 @@ object LListTest {
     val flattenedList = first6Num.flatMap(doublerList)
     println(flattenedList) // [1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7]
 
+    // test find
+    println(first6Num.find(evenPredicate)) // 2
+    println(first6Num.find((elem: Int) => elem > 10)) // throws a NoSuchElement exception
+
+    // Above line is same as follows. Compiler suggested the shorter version
+    /*
+    println(first6Num.find(new Predicate[Int] {
+      override def test(elem: Int): Boolean = elem > 10
+    }))
+     */
   }
 }
