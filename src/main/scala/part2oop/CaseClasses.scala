@@ -44,8 +44,7 @@ object CaseClasses {
   }
 
   case class CCWithArgListNoArgs[A]() // allowed; mainly used in the context of generics
-
-
+  
   def main(args: Array[String]): Unit = {
     println(danielToString)
     println(isSameDaniel)
