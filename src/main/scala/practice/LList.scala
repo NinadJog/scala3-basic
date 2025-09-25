@@ -25,6 +25,8 @@ trait LList[A] {
   def filter(predicate: Predicate[A]): LList[A]
   def filter_v2(predicate: Predicate[A]): LList[A]
 
+  def withFilter(predicate: Predicate[A]): LList[A]
+
   def flatMap[B](transformer: Transformer[A, LList[B]]): LList[B]
 
   // find test
@@ -55,6 +57,8 @@ case class Empty[A]() extends LList[A] {
 
   override def filter(predicate: Predicate[A]): LList[A]    = this // instead of Empty[A]()
   override def filter_v2(predicate: Predicate[A]): LList[A] = this
+
+  override   def withFilter(predicate: Predicate[A]): LList[A] = this
 
   override def flatMap[B](transformer: Transformer[A, LList[B]]): LList[B] = Empty[B]()
 
@@ -108,7 +112,7 @@ case class Cons[A](override val head: A, override val tail: LList[A]) extends LL
   // Instructor's solution is stack recursive
   override def filter(predicate: Predicate[A]): LList[A] =
     if predicate.test(head) then
-      new Cons(head, tail.filter(predicate))
+      Cons(head, tail.filter(predicate))
     else
       tail.filter(predicate)
 
@@ -126,6 +130,10 @@ case class Cons[A](override val head: A, override val tail: LList[A]) extends LL
     concatElems(this, Empty())
   }
 
+  // Added as part of exercises so it can support for comprehensions
+  override def withFilter(predicate: Predicate[A]): LList[A] =
+    filter(predicate)
+      
   override def flatMap[B](transformer: Transformer[A, LList[B]]): LList[B] =
     transformer.transform(head) ++ tail.flatMap(transformer)
 
@@ -208,7 +216,7 @@ case class Cons[A](override val head: A, override val tail: LList[A]) extends LL
  */
 
 /**
- * LList exercises
+ * LList exercises from HOFs & Currying
  *  - foreach(A => Unit): Unit
  *    [1, 2, 3].foreach(x => println(x))
  *
@@ -224,7 +232,6 @@ case class Cons[A](override val head: A, override val tail: LList[A]) extends LL
  *
  *  - foldLeft[B](start: B)((A, B) => B): B
  *    [1,2,3,4].foldLeft[Int](0)(x + y): Int == 10
- *
  */
 //-----------------------------------------------------------------------------
 object LListTest {
@@ -323,5 +330,21 @@ object LListTest {
     val sortedList1 = list1.sort((x, y) => x - y)
     println(sortedList1) // [0,1,4,5]
 
+    // test for comprehensions
+    val chars: LList[Char] = Cons('a', Cons('b', Cons('c', Empty())))
+    val combo: LList[String] = for {
+      num <- first3Numbers
+      ch <- chars
+    } yield s"$num$ch"
+    
+    println(combo) // [1a, 1b, 1c, 2a, 2b, 2c, 3a, 3b, 3c]
+
+    // test for comprehensions with guards. even numbers only
+    val comboEven: LList[String] = for {
+      num <- first3Numbers if num % 2 == 0
+      ch <- chars
+    } yield s"$num$ch"
+
+    println(comboEven) // [2a, 2b, 2c]
   }
 }
