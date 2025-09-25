@@ -73,10 +73,51 @@ object HOFsCurrying {
   val standardFormat: Double => String = curriedFormatter("%4.2f")
   // same as (x: Double) => "%4.2f".format(x)
 
+  /**
+   * Exercises
+   * 1. LList exercises are in LList.scala. Search for HOF exercises
+   *
+   * 2. Convert non-curried implementation to curried implementation and vice-versa
+   *    toCurry(f: (Int, Int) => Int): Int => Int => Int
+   *    fromCurry(f: (Int => Int => Int)): (Int, Int) => Int
+   *
+   * 3. Composition functions
+   *    compose(f,g) => x => f(g(x)
+   *    andThen(f,g) => x => g(f(x))
+   */
+
+  // 2. currying and uncurrying
+  def toCurry[A, B, C](f: (A, B) => C): A => B => C =
+    x => y => f(x, y)
+
+  val superAdder_v2: Int => Int => Int = toCurry(_ + _)
+
+  def fromCurry[A, B, C](f: A => B => C): (A, B) => C =
+    (x, y) => f(x)(y)
+
+  val simpleAdder: (Int, Int) => Int = fromCurry(superAdder)
+
+  // 3. composition functions
+  def compose[A, B, C](f: B => C, g: A => B): A => C =
+    x => f(g(x))
+
+  val incr:   Int => Int = x => x + 1
+  val square: Int => Int = x => x * x
+
+  val squareThenIncr = incr compose square
+
+  def andThen[A, B, C](f: A => B, g: B => C): A => C =
+    x => g(f(x))
+
+  val incThenSquare = incr andThen square
+
   //---------------------------------------------------------------------------
   def main(args: Array[String]): Unit = {
     println(six)
     println(nine)
     println(standardFormat(Math.PI))
+    println(simpleAdder(2, 78)) // 80
+    println(squareThenIncr(3))  // 10
+    println(incThenSquare(3))   // 16
   }
 }

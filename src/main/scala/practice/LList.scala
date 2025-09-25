@@ -30,6 +30,12 @@ trait LList[A] {
   // find test
   def find(predicate: Predicate[A]): A
 
+  // HOFs exercises
+  def foreach(f: A => Unit): Unit
+  def zipWith[B, T](other: LList[T], zip: (A, T) => B): LList[B]
+
+  def foldLeft[B](start: B)(combine: (B, A) => B): B
+  def sort(compare: (A, A) => Int): LList[A]
 }
 
 //-----------------------------------------------------------------------------
@@ -55,6 +61,16 @@ case class Empty[A]() extends LList[A] {
   override infix def ++(anotherList: LList[A]): LList[A] = anotherList
 
   override def find(predicate: Predicate[A]): A = throw new NoSuchElementException("List is empty")
+
+  // HOFs exercises
+  override def foreach(f: A => Unit): Unit = () // Return the Unit value
+
+  override def zipWith[B, T](other: LList[T], zip: (A, T) => B): LList[B] =
+    if (!other.isEmpty) throw new IllegalArgumentException("Trying to zip empty list with non-empty list")
+    else Empty()
+
+  override def foldLeft[B](start: B)(combine: (B, A) => B): B = start
+  override def sort(compare: (A, A) => Int): LList[A] = this
 }
 
 //-----------------------------------------------------------------------------
@@ -127,6 +143,49 @@ case class Cons[A](override val head: A, override val tail: LList[A]) extends LL
   override def find(predicate: Predicate[A]): A =
     if predicate.test(head) then head
     else tail.find(predicate)
+
+  // HOFs exercises
+  override def foreach(f: A => Unit): Unit = {
+    f(head)
+    tail.foreach(f)
+  }
+
+  override def zipWith[B, T](other: LList[T], zip: (A, T) => B): LList[B] =
+    if (other.isEmpty)
+      throw new IllegalArgumentException("Trying to zip empty list with non-empty list")
+    else
+      Cons(zip(head, other.head), tail.zipWith(other.tail, zip))
+
+  override def foldLeft[B](start: B)(combine: (B, A) => B): B = {
+    val newStart = combine(start, head)
+    tail.foldLeft[B](newStart)(combine)
+  }
+
+  // insertion sort, O(n^2), stack recursive
+  override def sort(compare: (A, A) => Int): LList[A] = {
+
+    // insert value into appropriate position in sorted list. examples:
+    // 1. insert(2, [1,3,5]) returns [1,2,3,5]
+    // 2. insert(1, [6,7,8]) returns [1,6,7,8]
+    // 3. insert(8, [1,2,3]) returns [1,2,3,8]
+    /*
+      insert 2 in [0, 1, 3, 5] == insertSorted(2, [0,1,3,5]
+      2 >= 0 so Cons(0, insertSorted(2, [1,3,5])
+      2 >= 1 so (Cons(0, Cons(1, insertSorted(2, [3,5]))
+      2 < 3  so (Cons(0, Cons(1, Cons(2, [3,5])))
+      == [0,1,2,3,5]
+     */
+    def insertSorted(elem: A, sortedList: LList[A]): LList[A] =
+      if sortedList.isEmpty then
+        Cons(elem, Empty())
+      else if compare(elem, sortedList.head) <= 0 then // insert value
+        Cons(elem, sortedList)
+      else
+        Cons(sortedList.head, insertSorted(elem, sortedList.tail))
+
+    // insert head into the sorted tail
+    insertSorted(head, tail.sort(compare))
+  }
 }
 
 //-----------------------------------------------------------------------------
@@ -148,6 +207,25 @@ case class Cons[A](override val head: A, override val tail: LList[A]) extends LL
  *    [1,2,3].flatMap(n => [n, n+1]) = [1,2, 2,3, 3,4]
  */
 
+/**
+ * LList exercises
+ *  - foreach(A => Unit): Unit
+ *    [1, 2, 3].foreach(x => println(x))
+ *
+ *  - sort((A, A) => Int): LList[A]
+ *    comparison function should return a negative value if the first argument is
+ *    "less" than the other, a positive value if it's greater than, and 0 if they are equal.
+ *    [3,2,4,1].sort((x, y) => x - y) == [1,2,3,4]
+ *    function need not be optimal or tail recursive. hint: use insertion sort.
+ *
+ *  - zipWith[B](LList[A], (A, A) => B): LList[B]
+ *    [1,2,3].zipWith([4,5,6], x * y) == [4,10,18]
+ *    If the two lists are not of the same length then throw an exception.
+ *
+ *  - foldLeft[B](start: B)((A, B) => B): B
+ *    [1,2,3,4].foldLeft[Int](0)(x + y): Int == 10
+ *
+ */
 //-----------------------------------------------------------------------------
 object LListTest {
   def main(args: Array[String]): Unit = {
@@ -215,7 +293,7 @@ object LListTest {
 
     // test find
     println(first6Num.find(evenPredicate)) // 2
-    println(first6Num.find((elem: Int) => elem > 10)) // throws a NoSuchElement exception
+    // println(first6Num.find((elem: Int) => elem > 10)) // throws a NoSuchElement exception
 
     // Above line is same as follows. Compiler suggested the shorter version
     /*
@@ -223,5 +301,27 @@ object LListTest {
       override def test(elem: Int): Boolean = elem > 10
     }))
      */
+
+    // test foreach
+    // first6Num.foreach(println)
+
+    // test zipWith
+    println(first3Numbers.zipWith(first3Numbers, _ + _)) // [2,4,6]
+
+    val animalList: LList[String] = Cons("dog", Cons("cat", Cons("crocodile", Empty())))
+    val zippedList: LList[String] = first3Numbers.zipWith(animalList, (num, animal) => s"$num-$animal")
+    println(zippedList)
+
+    // throws exception because the lists are not of the same length
+    // println(first3Numbers.zipWith(first6Num, _ + _)) // NoSuchElementException("Lists are not of the same length")
+
+    // test foldLeft
+    println(first6Num.foldLeft(0)(_ + _)) // 21
+
+    // test sort
+    val list1: LList[Int] = Cons(5, Cons(0, Cons(4, Cons(1, Empty()))))
+    val sortedList1 = list1.sort((x, y) => x - y)
+    println(sortedList1) // [0,1,4,5]
+
   }
 }
