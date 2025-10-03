@@ -74,11 +74,12 @@ object TuplesMaps {
   // We can group these values by some function and the result of that function will be the key in the resulting Map
   // In the following example, group the elements by the first letter
   val nameGroupings = names groupBy (name => name.charAt(0))  // Map[Char, List[String]]
-
+  // HashMap(J -> List(James, Jim), A -> List(Angela), B -> List(Bob, Bill), D -> List(Daniel))
+  
   //---------------------------------------------------------------------------
   def main(args: Array[String]): Unit = {
     println(phonebook)
     println(marysPhoneNumber) // -1
-    println(nameGroupings)
+    println(nameGroupings) // HashMap(J -> List(James, Jim), A -> List(Angela), B -> List(Bob, Bill), D -> List(Daniel))
   }
 }
